@@ -350,3 +350,22 @@ document.getElementById('btnPDF').addEventListener('click', () => {
 });
 
 document.getElementById('btnLimpar').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
+
+
+// --- FUNÇÃO DE PESQUISA NO HISTÓRICO ---
+document.getElementById('pesquisarHistorico').addEventListener('input', (e) => {
+    const termo = e.target.value.toLowerCase();
+    const linhas = document.querySelectorAll('#tabelaHistorico tbody tr');
+
+    linhas.forEach(linha => {
+        const casa = linha.cells[0].innerText.toLowerCase();
+        const morador = linha.cells[1].innerText.toLowerCase();
+        
+        // Se o termo digitado estiver na coluna Casa ou na coluna Morador, mostra a linha
+        if (casa.includes(termo) || morador.includes(termo)) {
+            linha.style.display = "";
+        } else {
+            linha.style.display = "none";
+        }
+    });
+});
