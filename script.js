@@ -178,16 +178,43 @@ const canvasFoto = document.getElementById('canvasFoto');
 const fotoPreview = document.getElementById('fotoPreview');
 let fotoBase64 = ""; 
 
-// --- CARREGAR DADOS ---
+// --- CARREGAR DADOS AO ABRIR ---
 window.onload = () => {
     const dadosSalvos = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     tabelaCorpo.innerHTML = "";
     dadosSalvos.forEach(item => {
         adicionarLinhaTabela(item.casa, item.nome, item.doc, item.hora, item.assinatura, item.foto, false);
     });
+    atualizarTabelaPendentes();
 };
 
-// --- FUNÇÃO ADICIONAR LINHA ---
+// --- NOVA TABELA DE ENCOMENDAS NA PORTARIA ---
+function atualizarTabelaPendentes() {
+    const corpoPendentes = document.querySelector('#tabelaPendentes tbody');
+    if (!corpoPendentes) return;
+    corpoPendentes.innerHTML = "";
+    
+    for (let i = 0; i < localStorage.length; i++) {
+        const chave = localStorage.key(i);
+        if (chave.startsWith('doc_p_')) {
+            const casa = chave.replace('doc_p_', '');
+            const doc = localStorage.getItem(chave);
+            
+            const linha = corpoPendentes.insertRow();
+            linha.insertCell(0).innerText = casa;
+            linha.insertCell(1).innerText = doc;
+            linha.insertCell(2).innerHTML = `<button onclick="avisarNovamente('${casa}')" style="background:#28a745; padding:5px; font-size:11px;">🔔 Reavisar</button>`;
+        }
+    }
+}
+
+function avisarNovamente(casa) {
+    const doc = localStorage.getItem(`doc_p_${casa}`);
+    const morador = bancoMoradores[casa][0];
+    window.open(`https://wa.me/${morador.tel}?text=Lembrete: Sua encomenda (${doc}) ainda está na portaria do Residencial Patrícia Galvão.`, '_blank');
+}
+
+// --- HISTÓRICO ---
 function adicionarLinhaTabela(casa, nome, doc, hora, assinatura, foto, salvar = true) {
     const novaLinha = tabelaCorpo.insertRow(0);
     novaLinha.insertCell(0).innerText = casa;
@@ -220,56 +247,50 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     video.style.display = "none";
 });
 
-// --- BUSCA MORADOR PARA AVISO DE CHEGADA (VERSÃO CORRIGIDA) ---
+// --- BUSCA INTELIGENTE (CASA 02, 27, ETC) ---
 document.getElementById('casaEntrada').addEventListener('input', (e) => {
     let casa = e.target.value.trim();
     const selectAviso = document.getElementById('selectMoradorAviso');
-    
-    // Se o usuário digitar apenas 1 dígito (ex: 1, 2), o sistema adiciona o 0 na frente automaticamente
-    if (casa.length === 1 && casa !== "0") {
-        casa = "0" + casa;
-    }
+    if (casa.length === 1 && casa !== "0") casa = "0" + casa;
 
     selectAviso.innerHTML = '<option value="">Selecione quem avisar...</option>';
-    
     if (bancoMoradores[casa]) {
         bancoMoradores[casa].forEach((m, index) => {
             let op = document.createElement('option');
-            op.value = index;
-            op.text = m.nome;
+            op.value = index; op.text = m.nome;
             selectAviso.add(op);
         });
-    } else {
-        selectAviso.innerHTML = '<option value="">Casa não encontrada...</option>';
     }
 });
 
-// --- 1. REGISTRO DE ENTRADA (ATUALIZADO PARA ESCOLHA DE MORADOR) ---
+// --- REGISTRAR CHEGADA ---
 document.getElementById('btnAvisarChegada').addEventListener('click', () => {
-    const casa = document.getElementById('casaEntrada').value.trim();
+    let casa = document.getElementById('casaEntrada').value.trim();
+    if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const doc = document.getElementById('docEntrada').value.trim();
     const idxMorador = document.getElementById('selectMoradorAviso').value;
 
-    if (!casa || !doc || idxMorador === "") return alert("Selecione a casa, documento e morador!");
+    if (!casa || !doc || idxMorador === "") return alert("Preencha todos os campos!");
 
-    const moradorEscolhido = bancoMoradores[casa][idxMorador];
-
+    const morador = bancoMoradores[casa][idxMorador];
     localStorage.setItem(`doc_p_${casa}`, doc);
     localStorage.setItem(`foto_p_${casa}`, fotoBase64);
 
-    window.open(`https://wa.me/${moradorEscolhido.tel}?text=Olá ${moradorEscolhido.nome}, sua encomenda (${doc}) chegou!`, '_blank');
-    alert("Registrado e aviso enviado!");
+    window.open(`https://wa.me/${morador.tel}?text=Olá ${morador.nome}, sua encomenda (${doc}) chegou na portaria!`, '_blank');
     
+    // Limpeza
     document.getElementById('casaEntrada').value = "";
     document.getElementById('docEntrada').value = "";
-    document.getElementById('selectMoradorAviso').innerHTML = '<option>Aguardando...</option>';
     fotoPreview.style.display = "none";
     fotoBase64 = "";
+    atualizarTabelaPendentes();
+    alert("Registrado e aviso enviado!");
 });
 
-// --- BUSCA MORADOR PARA RETIRADA ---
+// --- BUSCA PARA RETIRADA ---
 document.getElementById('confirmarCasa').addEventListener('input', (e) => {
-    const casa = e.target.value.trim();
+    let casa = e.target.value.trim();
+    if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const select = document.getElementById('selectMorador');
     select.innerHTML = '<option value="">Selecione...</option>';
     if (bancoMoradores[casa]) {
@@ -281,12 +302,13 @@ document.getElementById('confirmarCasa').addEventListener('input', (e) => {
     }
 });
 
-// --- 2. FINALIZAR ENTREGA ---
+// --- FINALIZAR ENTREGA (RETIRADA) ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
-    const casa = document.getElementById('confirmarCasa').value.trim();
+    let casa = document.getElementById('confirmarCasa').value.trim();
+    if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const idx = document.getElementById('selectMorador').value;
     
-    if (!casa || idx === "" || !bancoMoradores[casa]) return alert("Selecione o morador!");
+    if (!casa || idx === "" || !bancoMoradores[casa]) return alert("Selecione quem está retirando!");
 
     const doc = localStorage.getItem(`doc_p_${casa}`) || "N/A";
     const foto = localStorage.getItem(`foto_p_${casa}`) || "";
@@ -294,14 +316,17 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
 
     adicionarLinhaTabela(casa, bancoMoradores[casa][idx].nome, doc, new Date().toLocaleString(), assinatura, foto);
     
+    // Remove dos pendentes e limpa tela
     localStorage.removeItem(`doc_p_${casa}`);
     localStorage.removeItem(`foto_p_${casa}`);
+    atualizarTabelaPendentes();
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('confirmarCasa').value = "";
-    alert("Entrega Finalizada!");
+    alert("Entrega concluída com sucesso!");
 });
 
-// --- LÓGICA DE ASSINATURA ---
+// --- FUNÇÕES DE ASSINATURA ---
 let desenhando = false;
 function obterPos(e) {
     const rect = canvas.getBoundingClientRect();
@@ -315,7 +340,7 @@ canvas.addEventListener('mousedown', iniciar); canvas.addEventListener('touchsta
 canvas.addEventListener('mousemove', mover); canvas.addEventListener('touchmove', mover, {passive: false});
 window.addEventListener('mouseup', () => desenhando = false); window.addEventListener('touchend', () => desenhando = false);
 
-// --- SALVAR E PDF ---
+// --- SALVAMENTO LOCAL ---
 function salvarDados() {
     const dados = [];
     document.querySelectorAll('#tabelaHistorico tbody tr').forEach(tr => {
@@ -327,6 +352,7 @@ function salvarDados() {
     localStorage.setItem('registrosPortaria', JSON.stringify(dados));
 }
 
+// --- GERAR PDF ---
 document.getElementById('btnPDF').addEventListener('click', () => {
     const { jsPDF } = window.jspdf;
     const docPDF = new jsPDF();
@@ -346,26 +372,16 @@ document.getElementById('btnPDF').addEventListener('click', () => {
         },
         bodyStyles: { minCellHeight: 18 }
     });
-    docPDF.save("relatorio.pdf");
+    docPDF.save("relatorio_portaria.pdf");
 });
 
 document.getElementById('btnLimpar').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
 
-
-// --- FUNÇÃO DE PESQUISA NO HISTÓRICO ---
+// --- PESQUISA NO HISTÓRICO ---
 document.getElementById('pesquisarHistorico').addEventListener('input', (e) => {
     const termo = e.target.value.toLowerCase();
-    const linhas = document.querySelectorAll('#tabelaHistorico tbody tr');
-
-    linhas.forEach(linha => {
-        const casa = linha.cells[0].innerText.toLowerCase();
-        const morador = linha.cells[1].innerText.toLowerCase();
-        
-        // Se o termo digitado estiver na coluna Casa ou na coluna Morador, mostra a linha
-        if (casa.includes(termo) || morador.includes(termo)) {
-            linha.style.display = "";
-        } else {
-            linha.style.display = "none";
-        }
+    document.querySelectorAll('#tabelaHistorico tbody tr').forEach(linha => {
+        const txt = linha.innerText.toLowerCase();
+        linha.style.display = txt.includes(termo) ? "" : "none";
     });
 });
