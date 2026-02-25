@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portaria Digital - Campo Grande</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <h1>📦 Portaria Digital</h1>
+
+    <div class="secao">
+    <h2>📥 1. Registro de Chegada</h2>
+    <label>Número da Casa/Apto:</label>
+    <input type="text" id="casaEntrada" placeholder="Ex: 101">
+    
+    <label>Nº Nota Fiscal ou Rastreio:</label>
+    <input type="text" id="docEntrada" placeholder="Ex: BR123456789">
+
+    <label>Foto da Encomenda (Opcional):</label>
+    <video id="video" width="100%" autoplay playsinline style="display: none; border-radius: 8px; margin-bottom: 10px;"></video>
+    <canvas id="canvasFoto" style="display: none;"></canvas>
+    <img id="fotoPreview" src="" style="width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 2px solid #28a745;">
+
+    <div style="display: flex; gap: 5px;">
+        <button type="button" id="btnAbrirCamera" style="background-color: #6c757d; color: white; flex: 1;">📸 Abrir Câmera</button>
+        <button type="button" id="btnTirarFoto" style="background-color: #ffc107; color: black; flex: 1; display: none;">✨ Tirar Foto</button>
+    </div>
+
+    <button type="button" id="btnAvisarChegada" style="background-color: #007bff; color: white; width: 100%; padding: 12px; margin-top: 15px; font-weight: bold;">
+        Registrar e Avisar Morador
+    </button>
+</div>
+
+    <div class="secao">
+        <h2>📤 2. Retirada (Assinatura)</h2>
+        <label>Confirmar Casa:</label>
+        <input type="text" id="confirmarCasa" placeholder="Digite o número">
+
+        <label>Quem está retirando?</label>
+        <select id="selectMorador">
+            <option value="">Aguardando número...</option>
+        </select>
+
+        <label>Assine aqui:</label>
+        <canvas id="canvasAssinatura" width="400" height="150" style="border: 1px dashed #000; background: #fff; width: 100%;"></canvas>
+        
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button type="button" id="btnLimpar" style="background-color: #dc3545; color: white; flex: 1; padding: 10px;">Limpar</button>
+            <button type="button" id="btnFinalizar" style="background-color: #28a745; color: white; flex: 2; padding: 10px;">Finalizar Entrega</button>
+        </div>
+    </div>
+
+    <div class="secao">
+        <h2>📋 Histórico de Protocolos</h2>
+        <table id="tabelaHistorico" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th>Casa</th>
+                    <th>Morador</th>
+                    <th>Nota Fiscal/Rastreio</th>
+                    <th>Hora</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <button type="button" id="btnPDF" style="background-color: #000; color: white; margin-top: 15px; width: 100%; padding: 12px;">
+            📄 Gerar Relatório PDF com Assinaturas
+        </button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

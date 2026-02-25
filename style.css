@@ -1,0 +1,96 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 20px;
+    line-height: 1.6;   
+    
+}
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+canvas {
+    border: 2px dashed #999;
+    background: #fdfdfd;
+    cursor: crosshair;
+    margin-top: 10px;
+}
+button {
+    background: #316a3e;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+button.limpar {
+    background: #dc3545;
+}
+#tabelaHistorico {
+    margin-top: 15px;
+    border: 1px solid #ddd;
+}
+
+#tabelaHistorico th {
+    background-color: #007bff;
+    color: white;
+    padding: 10px;
+}
+
+#tabelaHistorico td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+body { font-family: Arial, sans-serif; 
+    background-color: #f4f4f4;
+     padding: 20px; max-width: 600px; 
+     margin: auto; 
+}
+h1 { text-align: 
+    center; 
+    color: #333; }
+.secao { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+label {
+     display: block;
+     margin-top: 10px;
+     font-weight: bold; }
+input, select, button { 
+    width: 100%; 
+    padding: 10px; 
+    margin-top: 5px; 
+    border-radius: 5px;
+     border: 1px solid #ddd; 
+     box-sizing: border-box;
+     }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+th { background-color: #007bff; color: white; padding: 10px; }
+td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    button {
+        height: 50px; /* Botões maiores para o polegar */
+        font-size: 16px;
+    }
+    canvas {
+        height: 200px; /* Mais espaço para assinar */
+    }
+}
