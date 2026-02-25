@@ -1,96 +1,85 @@
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* RESET PARA MOBILE */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f0f0;
-    max-width: 500px;
-    margin: 20px auto;
-    padding: 20px;
-    line-height: 1.6;   
-    
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background-color: #f4f7f6;
+    padding: 15px;
+    max-width: 500px; /* Tamanho ideal para celular */
+    margin: auto;
+    line-height: 1.4;
 }
-label {
-    display: block;
-    margin-top: 10px;
-    font-weight: bold;
+
+h1 { text-align: center; 
+    margin-bottom: 20px; 
+    color: #2c3e50; 
+    font-size: 22px; }
+
+.secao {
+    background: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
+
+h2 { 
+    font-size: 17px; 
+    margin-bottom: 12px; 
+    color: #34495e; 
+    border-left: 4px solid #007bff; 
+    padding-left: 10px; }
+
+label { 
+    display: block; 
+    margin-top: 12px;
+     font-weight: 600;
+      font-size: 14px; }
+
 input, select {
     width: 100%;
-    padding: 8px;
+    padding: 12px;
     margin-top: 5px;
-    box-sizing: border-box;
+    border: 1.5px solid #dcdde1;
+    border-radius: 8px;
+    font-size: 16px; /* Impede zoom automático no iPhone */
+    outline: none;
 }
-canvas {
-    border: 2px dashed #999;
-    background: #fdfdfd;
-    cursor: crosshair;
-    margin-top: 10px;
-}
+
+/* BOTÕES GRANDES PARA O DEDO */
 button {
-    background: #316a3e;
-    color: white;
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
     border: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    transition: 0.2s;
+}
+
+button:active { transform: scale(0.98); opacity: 0.8; }
+
+#btnAvisarChegada { background: #007bff; color: white; }
+#btnFinalizar { background: #28a745; color: white; }
+#btnLimpar { background: #dc3545; color: white; }
+#btnPDF { background: #333; color: white; }
+#btnAbrirCamera { background: #6c757d; color: white; }
+#btnTirarFoto { background: #f39c12; color: white; }
+
+/* TABELAS QUE NÃO SAEM DA TELA */
+.tabela-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #007bff; color: white; }
+
+/* ASSINATURA */
+canvas {
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
+    background: #fff;
+    width: 100%;
+    height: 150px;
     margin-top: 10px;
-}
-button.limpar {
-    background: #dc3545;
-}
-#tabelaHistorico {
-    margin-top: 15px;
-    border: 1px solid #ddd;
-}
-
-#tabelaHistorico th {
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-}
-
-#tabelaHistorico td {
-    padding: 8px;
-    border-bottom: 1px solid #eee;
-}
-body { font-family: Arial, sans-serif; 
-    background-color: #f4f4f4;
-     padding: 20px; max-width: 600px; 
-     margin: auto; 
-}
-h1 { text-align: 
-    center; 
-    color: #333; }
-.secao { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-label {
-     display: block;
-     margin-top: 10px;
-     font-weight: bold; }
-input, select, button { 
-    width: 100%; 
-    padding: 10px; 
-    margin-top: 5px; 
-    border-radius: 5px;
-     border: 1px solid #ddd; 
-     box-sizing: border-box;
-     }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
-th { background-color: #007bff; color: white; padding: 10px; }
-td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
-tbody tr:nth-child(even) { background-color: #f9f9f9; }
-
-@media (max-width: 600px) {
-    body {
-        padding: 10px;
-    }
-    button {
-        height: 50px; /* Botões maiores para o polegar */
-        font-size: 16px;
-    }
-    canvas {
-        height: 200px; /* Mais espaço para assinar */
-    }
+    touch-action: none; /* Crucial para assinar sem rolar a tela */
 }
