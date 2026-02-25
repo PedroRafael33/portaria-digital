@@ -217,10 +217,16 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     video.style.display = "none";
 });
 
-// --- BUSCA MORADOR PARA AVISO DE CHEGADA ---
+// --- BUSCA MORADOR PARA AVISO DE CHEGADA (VERSÃO CORRIGIDA) ---
 document.getElementById('casaEntrada').addEventListener('input', (e) => {
-    const casa = e.target.value.trim();
+    let casa = e.target.value.trim();
     const selectAviso = document.getElementById('selectMoradorAviso');
+    
+    // Se o usuário digitar apenas 1 dígito (ex: 1, 2), o sistema adiciona o 0 na frente automaticamente
+    if (casa.length === 1 && casa !== "0") {
+        casa = "0" + casa;
+    }
+
     selectAviso.innerHTML = '<option value="">Selecione quem avisar...</option>';
     
     if (bancoMoradores[casa]) {
@@ -230,6 +236,8 @@ document.getElementById('casaEntrada').addEventListener('input', (e) => {
             op.text = m.nome;
             selectAviso.add(op);
         });
+    } else {
+        selectAviso.innerHTML = '<option value="">Casa não encontrada...</option>';
     }
 });
 
