@@ -1,16 +1,15 @@
-// 1. BANCO DE DADOS
-// 1. BANCO DE DADOS ATUALIZADO (CASAS 001 A 010)
+// 1. BANCO DE DADOS ATUALIZADO - RESIDENCIAL PATRICIA GALVAO
 const bancoMoradores = {
     "01": [{ nome: "VITORIA RUIZ / LEOVAN MACHADO", tel: "5567992310139" }],
     "02": [{ nome: "MARIA ELIANE PEREIRA FIXINO", tel: "5567996411879" }],
     "03": [{ nome: "SONIA PAREDES BARBOZA", tel: "5567996375084" }],
-    "04": [{ nome: "CASA 004", tel: "" }], // Sem dados no PDF
+    "04": [{ nome: "CASA 004", tel: "" }],
     "05": [{ nome: "EUNICE DE OLIVEIRA SILVA", tel: "5567992797575" }],
     "06": [{ nome: "ANILTON CARDOSO DA SILVA", tel: "5567992421924" }],
     "07": [{ nome: "ALESSANDRA DOS SANTOS ALVES", tel: "5567998233230" }],
     "08": [{ nome: "MARIA APARECIDA DIAS", tel: "5567991279250" }],
     "09": [{ nome: "DENILSON CEZARIO NEPOMUCENO", tel: "5567991163698" }],
-    "10": [{ nome: "CASA 010", tel: "" }], // Sem dados no PDF
+    "10": [{ nome: "CASA 010", tel: "" }],
     "11": [{ nome: "MORADOR PRINCIPAL", tel: "" }],
     "12": [{ nome: "DIEGO DE OLIVEIRA LIMA", tel: "5567992956669" }],
     "13": [{ nome: "CRISTIANE APARECIDA RUFINO", tel: "5567982130063" }],
@@ -27,7 +26,6 @@ const bancoMoradores = {
     "24": [{ nome: "JAIRO DE OLIVEIRA LIMA", tel: "5567992019342" }],
     "25": [{ nome: "GISELE APARECIDA PAVAO", tel: "5567996157909" }],
     "26": [{ nome: "CLEBERSON SILVA NASCIMENTO", tel: "556791550769" }],
-    "27": [{ nome: "VALDECY DA SILVA", tel: "5567992277815" }],
     "27": [{ nome: "PEDRO RAFAEL LOPES GARCIA", tel: "5567998878106" }],    
     "28": [{ nome: "GISELY DINIZ FERREIRA", tel: "5567992514308" }],
     "29": [{ nome: "CELSO BUGATI CABANHA", tel: "5567992436787" }],
@@ -169,7 +167,6 @@ const bancoMoradores = {
     "165": [{ nome: "MARIA DE LOURDES DA SILVA", tel: "5567992747076" }]
 };
 
-
 const canvas = document.getElementById('canvasAssinatura');
 const ctx = canvas.getContext('2d');
 const tabelaCorpo = document.querySelector('#tabelaHistorico tbody');
@@ -220,24 +217,46 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     video.style.display = "none";
 });
 
-// --- 1. REGISTRO DE ENTRADA ---
+// --- BUSCA MORADOR PARA AVISO DE CHEGADA ---
+document.getElementById('casaEntrada').addEventListener('input', (e) => {
+    const casa = e.target.value.trim();
+    const selectAviso = document.getElementById('selectMoradorAviso');
+    selectAviso.innerHTML = '<option value="">Selecione quem avisar...</option>';
+    
+    if (bancoMoradores[casa]) {
+        bancoMoradores[casa].forEach((m, index) => {
+            let op = document.createElement('option');
+            op.value = index;
+            op.text = m.nome;
+            selectAviso.add(op);
+        });
+    }
+});
+
+// --- 1. REGISTRO DE ENTRADA (ATUALIZADO PARA ESCOLHA DE MORADOR) ---
 document.getElementById('btnAvisarChegada').addEventListener('click', () => {
     const casa = document.getElementById('casaEntrada').value.trim();
     const doc = document.getElementById('docEntrada').value.trim();
-    if (!casa || !doc || !bancoMoradores[casa]) return alert("Confira a casa e o documento!");
+    const idxMorador = document.getElementById('selectMoradorAviso').value;
+
+    if (!casa || !doc || idxMorador === "") return alert("Selecione a casa, documento e morador!");
+
+    const moradorEscolhido = bancoMoradores[casa][idxMorador];
 
     localStorage.setItem(`doc_p_${casa}`, doc);
     localStorage.setItem(`foto_p_${casa}`, fotoBase64);
 
-    window.open(`https://wa.me/${bancoMoradores[casa][0].tel}?text=Sua encomenda (${doc}) chegou!`, '_blank');
-    alert("Registrado!");
+    window.open(`https://wa.me/${moradorEscolhido.tel}?text=Olá ${moradorEscolhido.nome}, sua encomenda (${doc}) chegou!`, '_blank');
+    alert("Registrado e aviso enviado!");
+    
     document.getElementById('casaEntrada').value = "";
     document.getElementById('docEntrada').value = "";
+    document.getElementById('selectMoradorAviso').innerHTML = '<option>Aguardando...</option>';
     fotoPreview.style.display = "none";
     fotoBase64 = "";
 });
 
-// --- BUSCA MORADOR ---
+// --- BUSCA MORADOR PARA RETIRADA ---
 document.getElementById('confirmarCasa').addEventListener('input', (e) => {
     const casa = e.target.value.trim();
     const select = document.getElementById('selectMorador');
@@ -251,7 +270,7 @@ document.getElementById('confirmarCasa').addEventListener('input', (e) => {
     }
 });
 
-// --- 2. FINALIZAR ENTREGA (CORRIGIDO) ---
+// --- 2. FINALIZAR ENTREGA ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
     const casa = document.getElementById('confirmarCasa').value.trim();
     const idx = document.getElementById('selectMorador').value;
@@ -271,7 +290,7 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
     alert("Entrega Finalizada!");
 });
 
-// --- LÓGICA DE ASSINATURA (ADICIONADA) ---
+// --- LÓGICA DE ASSINATURA ---
 let desenhando = false;
 function obterPos(e) {
     const rect = canvas.getBoundingClientRect();
