@@ -27,7 +27,7 @@ const bancoMoradores = {
     "25": [{ nome: "GISELE APARECIDA PAVAO", tel: "5567996157909" }],
     "26": [{ nome: "CLEBERSON SILVA NASCIMENTO", tel: "556791550769" }],
     "27": [
-        { nome: "PEDRO RAFAEL LOPES GARCIA", tel: "5567998878106" }
+        { nome: "PEDRO RAFAEL LOPES GARCIA", tel: "5567998878106" },
         { nome: "VALDECY DA SILVA ", tel: "556792277815" }
         ],
     "28": [{ nome: "GISELY DINIZ FERREIRA", tel: "5567992514308" }],
