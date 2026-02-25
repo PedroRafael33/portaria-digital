@@ -1,4 +1,4 @@
-// 1. BANCO DE DADOS - Adicione os moradores aqui
+// 1. BANCO DE DADOS
 const bancoMoradores = {
     "101": [
         { nome: "João Silva", tel: "5567998878106" },
@@ -7,7 +7,6 @@ const bancoMoradores = {
     "102": [{ nome: "Ana Paula", tel: "5567777777777" }]
 };
 
-// Elementos
 const canvas = document.getElementById('canvasAssinatura');
 const ctx = canvas.getContext('2d');
 const tabelaCorpo = document.querySelector('#tabelaHistorico tbody');
@@ -39,10 +38,12 @@ function adicionarLinhaTabela(casa, nome, doc, hora, assinatura, foto, salvar = 
 
 // --- CÂMERA ---
 document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    video.srcObject = stream;
-    video.style.display = "block";
-    document.getElementById('btnTirarFoto').style.display = "block";
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        video.style.display = "block";
+        document.getElementById('btnTirarFoto').style.display = "block";
+    } catch (e) { alert("Câmera não disponível"); }
 });
 
 document.getElementById('btnTirarFoto').addEventListener('click', () => {
@@ -56,21 +57,16 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     video.style.display = "none";
 });
 
-// --- REGISTRO DE ENTRADA ---
+// --- 1. REGISTRO DE ENTRADA ---
 document.getElementById('btnAvisarChegada').addEventListener('click', () => {
     const casa = document.getElementById('casaEntrada').value.trim();
-    const doc = document.getElementById('docEntrada').value;
-    const moradores = bancoMoradores[casa];
+    const doc = document.getElementById('docEntrada').value.trim();
+    if (!casa || !doc || !bancoMoradores[casa]) return alert("Confira a casa e o documento!");
 
-    if (!casa || !doc) return alert("Preencha casa e documento!");
-    if (!moradores) return alert("Casa não cadastrada!");
+    localStorage.setItem(`doc_p_${casa}`, doc);
+    localStorage.setItem(`foto_p_${casa}`, fotoBase64);
 
-    localStorage.setItem(`doc_pendente_${casa}`, doc);
-    localStorage.setItem(`foto_pendente_${casa}`, fotoBase64);
-
-    const link = `https://wa.me/${moradores[0].tel}?text=${encodeURIComponent("Encomenda chegou! Unidade " + casa + " (Ref: " + doc + ")")}`;
-    window.open(link, '_blank');
-    
+    window.open(`https://wa.me/${bancoMoradores[casa][0].tel}?text=Sua encomenda (${doc}) chegou!`, '_blank');
     alert("Registrado!");
     document.getElementById('casaEntrada').value = "";
     document.getElementById('docEntrada').value = "";
@@ -78,7 +74,7 @@ document.getElementById('btnAvisarChegada').addEventListener('click', () => {
     fotoBase64 = "";
 });
 
-// --- BUSCA MORADOR PARA RETIRADA ---
+// --- BUSCA MORADOR ---
 document.getElementById('confirmarCasa').addEventListener('input', (e) => {
     const casa = e.target.value.trim();
     const select = document.getElementById('selectMorador');
@@ -92,23 +88,39 @@ document.getElementById('confirmarCasa').addEventListener('input', (e) => {
     }
 });
 
-// --- FINALIZAR ---
+// --- 2. FINALIZAR ENTREGA (CORRIGIDO) ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
     const casa = document.getElementById('confirmarCasa').value.trim();
     const idx = document.getElementById('selectMorador').value;
-    if (!casa || idx === "") return alert("Selecione o morador!");
+    
+    if (!casa || idx === "" || !bancoMoradores[casa]) return alert("Selecione o morador!");
 
-    const doc = localStorage.getItem(`doc_pendente_${casa}`) || "N/A";
-    const foto = localStorage.getItem(`foto_pendente_${casa}`) || "";
+    const doc = localStorage.getItem(`doc_p_${casa}`) || "N/A";
+    const foto = localStorage.getItem(`foto_p_${casa}`) || "";
     const assinatura = canvas.toDataURL();
 
     adicionarLinhaTabela(casa, bancoMoradores[casa][idx].nome, doc, new Date().toLocaleString(), assinatura, foto);
     
-    localStorage.removeItem(`doc_pendente_${casa}`);
-    localStorage.removeItem(`foto_pendente_${casa}`);
+    localStorage.removeItem(`doc_p_${casa}`);
+    localStorage.removeItem(`foto_p_${casa}`);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('confirmarCasa').value = "";
+    alert("Entrega Finalizada!");
 });
+
+// --- LÓGICA DE ASSINATURA (ADICIONADA) ---
+let desenhando = false;
+function obterPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clienteX - rect.left, y: clienteY - rect.top };
+}
+const iniciar = (e) => { desenhando = true; ctx.beginPath(); const p = obterPos(e); ctx.moveTo(p.x, p.y); if(e.touches) e.preventDefault(); };
+const mover = (e) => { if(!desenhando) return; const p = obterPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); if(e.touches) e.preventDefault(); };
+canvas.addEventListener('mousedown', iniciar); canvas.addEventListener('touchstart', iniciar, {passive: false});
+canvas.addEventListener('mousemove', mover); canvas.addEventListener('touchmove', mover, {passive: false});
+window.addEventListener('mouseup', () => desenhando = false); window.addEventListener('touchend', () => desenhando = false);
 
 // --- SALVAR E PDF ---
 function salvarDados() {
@@ -133,12 +145,10 @@ document.getElementById('btnPDF').addEventListener('click', () => {
         head: [['Casa', 'Morador', 'Nota', 'Hora', 'Foto', 'Assinatura']],
         body: rows,
         didDrawCell: (data) => {
-            const trs = document.querySelectorAll('#tabelaHistorico tbody tr');
             if (data.cell.section === 'body') {
-                const imgFoto = trs[data.row.index].getAttribute('data-foto');
-                const imgAssin = trs[data.row.index].getAttribute('data-assinatura');
-                if (data.column.index === 4 && imgFoto) docPDF.addImage(imgFoto, 'JPEG', data.cell.x + 2, data.cell.y + 2, 20, 12);
-                if (data.column.index === 5 && imgAssin) docPDF.addImage(imgAssin, 'PNG', data.cell.x + 2, data.cell.y + 2, 20, 8);
+                const tr = document.querySelectorAll('#tabelaHistorico tbody tr')[data.row.index];
+                if (data.column.index === 4 && tr.getAttribute('data-foto')) docPDF.addImage(tr.getAttribute('data-foto'), 'JPEG', data.cell.x+2, data.cell.y+2, 20, 12);
+                if (data.column.index === 5 && tr.getAttribute('data-assinatura')) docPDF.addImage(tr.getAttribute('data-assinatura'), 'PNG', data.cell.x+2, data.cell.y+2, 20, 8);
             }
         },
         bodyStyles: { minCellHeight: 18 }
@@ -146,21 +156,4 @@ document.getElementById('btnPDF').addEventListener('click', () => {
     docPDF.save("relatorio.pdf");
 });
 
-// Assinatura
-let desenhando = false;
-canvas.addEventListener('touchstart', (e) => { 
-    desenhando = true; ctx.beginPath(); 
-    const rect = canvas.getBoundingClientRect();
-    ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-    e.preventDefault();
-}, {passive: false});
-canvas.addEventListener('touchmove', (e) => {
-    if (desenhando) {
-        const rect = canvas.getBoundingClientRect();
-        ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-        ctx.stroke();
-    }
-    e.preventDefault();
-}, {passive: false});
-window.addEventListener('touchend', () => desenhando = false);
 document.getElementById('btnLimpar').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
