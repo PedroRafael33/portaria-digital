@@ -370,14 +370,20 @@ function carregarHistorico() {
 }
 
 
-// --- CÂMERA PARA MÚLTIPLAS FOTOS ---
+// --- CÂMERA PARA MÚLTIPLAS FOTOS (COMPATÍVEL COM PC E CELULAR) ---
 document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
     try {
-        streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        // O "ideal" faz funcionar no celular (traseira) e no PC (webcam frontal)
+        streamCamera = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: { ideal: "environment" } } 
+        });
         video.srcObject = streamCamera;
         video.style.display = "block";
         document.getElementById('btnTirarFoto').style.display = "block";
-    } catch (e) { alert("Câmera não disponível"); }
+    } catch (e) { 
+        alert("Câmera não disponível. Verifique se o PC possui webcam ou se o navegador tem permissão."); 
+        console.error(e);
+    }
 });
 
 document.getElementById('btnTirarFoto').addEventListener('click', () => {
