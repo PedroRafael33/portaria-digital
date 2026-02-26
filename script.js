@@ -174,7 +174,7 @@ const bancoMoradores = {
 const canvas = document.getElementById('canvasAssinatura');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('video');
-let fotosBase64 = []; // Agora guardamos várias fotos em uma lista
+let fotosBase64 = []; 
 let streamCamera = null;
 
 // INICIALIZAÇÃO CORRETA DO QUADRO DE ASSINATURA PARA CELULAR
@@ -286,7 +286,7 @@ function reavisar(chave) {
 }
 
 
-// --- FINALIZAR RETIRADA COM TRAVA DE SEGURANÇA ---
+// --- FINALIZAR RETIRADA COM TRAVA DE SEGURANÇA E AVISO NO WHATSAPP ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
     let casa = document.getElementById('confirmarCasa').value;
     if (casa.length === 1 && casa !== "0") casa = "0" + casa;
@@ -345,6 +345,16 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
     atualizarTabelaPendentes();
     
     alert(`${chavesPendentesCasa.length} encomenda(s) entregue(s) com sucesso para a casa ${casa}!`);
+
+    // --- NOVA FUNÇÃO: MENSAGEM DE WHATSAPP NA RETIRADA ---
+    const listaDocsRetirada = itensPendentes.map(item => item.doc);
+    const textoDocsRetirada = listaDocsRetirada.join(", ");
+    const textoMsgRetirada = listaDocsRetirada.length > 1 
+        ? `Confirmação de Retirada: Olá ${nomeRetirante}, as ${listaDocsRetirada.length} encomendas (${textoDocsRetirada}) foram retiradas na portaria com sucesso!` 
+        : `Confirmação de Retirada: Olá ${nomeRetirante}, a encomenda (${textoDocsRetirada}) foi retirada na portaria com sucesso!`;
+    
+    const morador = bancoMoradores[casa][idx];
+    window.open(`https://wa.me/${morador.tel}?text=${encodeURIComponent(textoMsgRetirada)}`, '_blank');
 });
 
 
@@ -400,11 +410,11 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     const img = document.createElement('img');
     img.src = novaFoto;
     img.style.height = "80px";
+    img.style.width = "80px"; /* Adiciona uma largura fixa para a miniatura */
+    img.style.objectFit = "cover"; /* CORTA A IMAGEM EM VEZ DE ACHATAR */
     img.style.borderRadius = "8px";
     img.style.border = "1px solid #ccc";
     imgContainer.appendChild(img);
-    
-    // A câmera continua aberta! Assim você pode tirar 3 fotos seguidas sem apertar mais nada.
 });
 
 
@@ -474,7 +484,7 @@ document.getElementById('btnPDF').addEventListener('click', () => {
         
         docPDF.autoTable({ 
             startY: 20,
-            head: [['Casa', 'Morador', 'Doc', 'Hora', 'Foto', 'Assinatura']], 
+            head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']], 
             body: linhasVisiveis,
             didDrawCell: (data) => {
                 if (data.cell.section === 'body') {
@@ -511,4 +521,22 @@ document.getElementById('pesquisarHistorico').addEventListener('input', (e) => {
     document.querySelectorAll('#tabelaHistorico tbody tr').forEach(linha => {
         linha.style.display = linha.innerText.toLowerCase().includes(termo) ? "" : "none";
     });
+});
+
+// --- BOTÃO DE LIMPEZA DO HISTÓRICO (LIBERAR MEMÓRIA) ---
+document.getElementById('btnLimparHistorico').addEventListener('click', () => {
+    const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
+    
+    if (registros.length === 0) {
+        return alert("O histórico já está vazio!");
+    }
+
+    // Confirmação dupla para evitar acidentes
+    const confirmacao = confirm("⚠️ ATENÇÃO!\n\nTem a certeza de que deseja apagar TODO o histórico de entregas?\n\nCertifique-se de que já gerou e guardou o PDF. Esta ação NÃO pode ser desfeita.\n\nDeseja continuar?");
+    
+    if (confirmacao) {
+        localStorage.removeItem('registrosPortaria');
+        carregarHistorico(); // Esvazia a tabela visualmente
+        alert("🗑️ Histórico apagado com sucesso! A memória do sistema está livre para o próximo mês.");
+    }
 });

@@ -10,14 +10,14 @@
 </head>
 <body>
 
-    <h1>📦 Portaria Digital</h1>
+    <h1>Portaria Digital - Patrícia Galvão</h1>
 
     <div class="secao">
-        <h2>📥 1. Registro de Encomendas</h2>
+        <h2>Registro de Encomendas</h2>
         <label>Casa:</label>
         <input type="text" id="casaEntrada" placeholder="Ex: 27">
         
-        <label>Nº Notas Fiscais ou Rastreio (separe por vírgula se houver mais):</label>
+        <label>Nº Notas Fiscais ou Rastreio:</label>
         <input type="text" id="docEntrada" placeholder="Ex: 123, 456, 789">
         
         <label>Avisar quem?</label>
@@ -25,7 +25,7 @@
             <option value="">Digite o nº da casa...</option>
         </select>
 
-        <label>Foto das Encomendas (Opcional):</label>
+        <label>Foto das Encomendas:</label>
         <video id="video" width="100%" autoplay playsinline style="display: none; border-radius: 8px; margin-top: 10px;"></video>
         <canvas id="canvasFoto" style="display: none;"></canvas>
         
@@ -45,7 +45,7 @@
                 <thead>
                     <tr>
                         <th>Casa</th>
-                        <th>Doc</th>
+                        <th>Rastreio</th>
                         <th>Ação</th>
                     </tr>
                 </thead>
@@ -76,7 +76,8 @@
         <label>🔍 Pesquisar no Histórico:</label>
         <input type="text" id="pesquisarHistorico" placeholder="Digite a casa ou nome para filtrar...">
         
-        <button id="btnPDF" style="margin-bottom: 15px;">📄 Gerar Relatório PDF</button>
+        <button id="btnPDF">📄 Gerar Relatório PDF</button>
+        <button id="btnLimparHistorico" style="background-color: #dc3545; color: white; margin-bottom: 15px; margin-top: 5px;">🗑️ Apagar Histórico</button>
 
         <div class="tabela-container">
             <table id="tabelaHistorico">
