@@ -2,8 +2,8 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portaria Digital - Campo Grande</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Portaria Digital - Patrícia Galvão</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -13,89 +13,84 @@
     <h1>📦 Portaria Digital</h1>
 
     <div class="secao">
-        <h2>📥 1. Registro de Chegada</h2>
-        <label>Número da Casa/Apto:</label>
-        <input type="text" id="casaEntrada" placeholder="Ex: 101">
+        <h2>📥 1. Registro de Encomendas</h2>
+        <label>Casa:</label>
+        <input type="text" id="casaEntrada" placeholder="Ex: 27">
         
-        <label>Nº Nota Fiscal ou Rastreio:</label>
-        <input type="text" id="docEntrada" placeholder="Ex: BR123456789">
+        <label>Nº Notas Fiscais ou Rastreio (separe por vírgula se houver mais):</label>
+        <input type="text" id="docEntrada" placeholder="Ex: 123, 456, 789">
         
-        <label>Para qual morador avisar?</label>
+        <label>Avisar quem?</label>
         <select id="selectMoradorAviso">
-            <option value="">Aguardando número da casa...</option>
+            <option value="">Digite o nº da casa...</option>
         </select>
 
-        <label>Foto da Encomenda (Opcional):</label>
-        <video id="video" width="100%" autoplay playsinline style="display: none; border-radius: 8px; margin-bottom: 10px;"></video>
+        <label>Foto das Encomendas (Opcional):</label>
+        <video id="video" width="100%" autoplay playsinline style="display: none; border-radius: 8px; margin-top: 10px;"></video>
         <canvas id="canvasFoto" style="display: none;"></canvas>
-        <img id="fotoPreview" src="" style="width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 2px solid #28a745;">
+        
+        <div id="fotosContainer" style="display: flex; gap: 8px; overflow-x: auto; margin-top: 10px;"></div>
 
-        <div style="display: flex; gap: 5px;">
-            <button type="button" id="btnAbrirCamera" style="background-color: #6c757d; color: white; flex: 1;">📸 Abrir Câmera</button>
-            <button type="button" id="btnTirarFoto" style="background-color: #ffc107; color: black; flex: 1; display: none;">✨ Tirar Foto</button>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button id="btnAbrirCamera">📸 Câmera</button>
+            <button id="btnTirarFoto" style="display: none;">✨ Capturar</button>
         </div>
-
-        <button type="button" id="btnAvisarChegada" style="background-color: #007bff; color: white; width: 100%; padding: 12px; margin-top: 15px; font-weight: bold;">
-            Registrar e Avisar Morador
-        </button>
+        <button id="btnAvisarChegada">Registrar e Avisar WhatsApp</button>
     </div>
 
-    <div class="secao" style="background-color: #fff3cd; border-left: 5px solid #ffc107;">
-        <h2>⏳ Encomendas na Portaria (Pendentes)</h2>
-        <p style="font-size: 12px; color: #856404;">Itens aguardando retirada dos moradores.</p>
-        <table id="tabelaPendentes" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-                <tr style="background-color: #ffeeba;">
-                    <th style="text-align: left; padding: 8px;">Casa</th>
-                    <th style="text-align: left; padding: 8px;">Nota/Doc</th>
-                    <th style="text-align: center; padding: 8px;">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+    <div class="secao secao-pendentes">
+        <h2>⏳ Pendentes na Portaria</h2>
+        <div class="tabela-container">
+            <table id="tabelaPendentes">
+                <thead>
+                    <tr>
+                        <th>Casa</th>
+                        <th>Doc</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="secao">
-        <h2>📤 3. Retirada (Assinatura)</h2>
+        <h2>📤 2. Encomendas para Retirar</h2>
         <label>Confirmar Casa:</label>
-        <input type="text" id="confirmarCasa" placeholder="Digite o número">
-
-        <label>Quem está retirando?</label>
+        <input type="text" id="confirmarCasa">
+        <label>Quem retirou?</label>
         <select id="selectMorador">
-            <option value="">Aguardando número...</option>
+            <option value="">Aguardando...</option>
         </select>
-
-        <label>Assine aqui:</label>
-        <canvas id="canvasAssinatura" width="400" height="150" style="border: 1px dashed #000; background: #fff; width: 100%;"></canvas>
         
-        <div style="margin-top: 10px; display: flex; gap: 10px;">
-            <button type="button" id="btnLimpar" style="background-color: #dc3545; color: white; flex: 1; padding: 10px;">Limpar</button>
-            <button type="button" id="btnFinalizar" style="background-color: #28a745; color: white; flex: 2; padding: 10px;">Finalizar Entrega</button>
+        <label>Assinatura:</label>
+        <canvas id="canvasAssinatura"></canvas>
+        <div style="display: flex; gap: 8px;">
+            <button id="btnLimpar">Limpar</button>
+            <button id="btnFinalizar" style="flex: 2;">Finalizar Entrega</button>
         </div>
     </div>
 
     <div class="secao">
         <h2>📋 Histórico de Protocolos</h2>
-        
         <label>🔍 Pesquisar no Histórico:</label>
         <input type="text" id="pesquisarHistorico" placeholder="Digite a casa ou nome para filtrar...">
-
-        <table id="tabelaHistorico" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="padding: 8px; border: 1px solid #ddd;">Casa</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">Morador</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">Nota/Rastreio</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">Hora</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
         
-        <button type="button" id="btnPDF" style="background-color: #000; color: white; margin-top: 15px; width: 100%; padding: 12px; font-weight: bold;">
-            📄 Gerar Relatório PDF Completo
-        </button>
+        <button id="btnPDF" style="margin-bottom: 15px;">📄 Gerar Relatório PDF</button>
+
+        <div class="tabela-container">
+            <table id="tabelaHistorico">
+                <thead>
+                    <tr>
+                        <th>Casa</th>
+                        <th>Morador</th>
+                        <th>Rastreio</th> 
+                        <th>Hora</th> 
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <script src="script.js"></script>

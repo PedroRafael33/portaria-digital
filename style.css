@@ -1,85 +1,78 @@
-/* RESET PARA MOBILE */
+/* RESET GERAL E BLOQUEIO DE ZOOM NO MOBILE */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     font-family: 'Segoe UI', system-ui, sans-serif;
     background-color: #f4f7f6;
-    padding: 15px;
-    max-width: 500px; /* Tamanho ideal para celular */
+    padding: 10px;
+    max-width: 500px;
     margin: auto;
     line-height: 1.4;
 }
 
-h1 { text-align: center; 
-    margin-bottom: 20px; 
-    color: #2c3e50; 
-    font-size: 22px; }
+h1 { text-align: center; margin-bottom: 20px; color: #2c3e50; font-size: 22px; }
+
+h2 { font-size: 17px; margin-bottom: 12px; color: #34495e; border-left: 4px solid #007bff; padding-left: 10px; }
 
 .secao {
     background: #fff;
     padding: 15px;
     border-radius: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
-h2 { 
-    font-size: 17px; 
-    margin-bottom: 12px; 
-    color: #34495e; 
-    border-left: 4px solid #007bff; 
-    padding-left: 10px; }
+.secao-pendentes {
+    background-color: #fff9e6 !important; 
+    border-left: 4px solid #f1c40f !important;
+}
 
-label { 
-    display: block; 
-    margin-top: 12px;
-     font-weight: 600;
-      font-size: 14px; }
+label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
 
 input, select {
     width: 100%;
     padding: 12px;
     margin-top: 5px;
-    border: 1.5px solid #dcdde1;
     border-radius: 8px;
-    font-size: 16px; /* Impede zoom automático no iPhone */
+    border: 1px solid #ddd;
+    font-size: 16px; /* 16px IMPEDE O ZOOM AUTOMÁTICO DO CELULAR */
     outline: none;
 }
 
-/* BOTÕES GRANDES PARA O DEDO */
+/* BOTÕES COM CORES DEFINITIVAS */
 button {
     width: 100%;
-    padding: 14px;
-    margin-top: 12px;
+    padding: 15px;
+    margin-top: 10px;
     border: none;
     border-radius: 8px;
     font-weight: bold;
     font-size: 16px;
+    cursor: pointer;
     transition: 0.2s;
 }
-
 button:active { transform: scale(0.98); opacity: 0.8; }
 
-#btnAvisarChegada { background: #007bff; color: white; }
-#btnFinalizar { background: #28a745; color: white; }
-#btnLimpar { background: #dc3545; color: white; }
-#btnPDF { background: #333; color: white; }
-#btnAbrirCamera { background: #6c757d; color: white; }
-#btnTirarFoto { background: #f39c12; color: white; }
+#btnAvisarChegada { background-color: #007bff !important; color: white !important; }
+#btnFinalizar { background-color: #28a745 !important; color: white !important; }
+#btnLimpar { background-color: #dc3545 !important; color: white !important; }
+#btnPDF { background-color: #000000 !important; color: white !important; }
+#btnAbrirCamera { background-color: #6c757d !important; color: white !important; }
+#btnTirarFoto { background-color: #f39c12 !important; color: white !important; }
 
-/* TABELAS QUE NÃO SAEM DA TELA */
-.tabela-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; }
+/* TABELAS PARA NÃO VAZAR DA TELA */
+.tabela-container { overflow-x: auto; width: 100%; border-radius: 8px; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
-th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-th { background: #007bff; color: white; }
+th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+th { background-color: #007bff; color: white; }
 
-/* ASSINATURA */
+/* ÁREA DE ASSINATURA */
 canvas {
-    border: 2px dashed #bdc3c7;
-    border-radius: 8px;
+    border: 2px dashed #ccc;
     background: #fff;
     width: 100%;
     height: 150px;
     margin-top: 10px;
-    touch-action: none; /* Crucial para assinar sem rolar a tela */
+    border-radius: 8px;
+    touch-action: none; /* ESSENCIAL PARA O MORADOR CONSEGUIR ASSINAR */
 }
