@@ -177,16 +177,20 @@ const video = document.getElementById('video');
 let fotosBase64 = []; 
 let streamCamera = null;
 let temAssinatura = false; 
+let desenhando = false; // Controle interno do desenho
 
 // INICIALIZAÇÃO
 window.onload = () => {
     carregarHistorico();
     atualizarTabelaPendentes();
+    
+    // Configura o canvas para o tamanho visível
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = '#000';
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 };
 
 // --- BUSCA DE MORADORES ---
@@ -225,10 +229,11 @@ document.getElementById('btnAvisarChegada').addEventListener('click', () => {
     });
 
     const morador = bancoMoradores[casa][idx];
-    const textoMsg = `Olá ${morador.nome}, sua(s) encomenda(s) (${listaDocs.join(", ")}) chegou na portaria!`;
+    
+    const textoMsg = `📦 *AVISO DE ENCOMENDA - PORTARIA*\n\nOlá, *${morador.nome}*!\nInformamos que chegou encomenda para a sua unidade.\n\n📝 *Rastreio/NF:* ${listaDocs.join(", ")}\n🏠 *Residencial Patrícia Galvão*\n\n_Favor retirar na portaria quando possível._`;
+    
     window.open(`https://wa.me/${morador.tel}?text=${encodeURIComponent(textoMsg)}`, '_blank');
 
-    // LIMPAR
     document.getElementById('casaEntrada').value = "";
     document.getElementById('docEntrada').value = "";
     document.getElementById('selectMoradorAviso').innerHTML = '<option value="">Digite o nº da casa...</option>';
@@ -241,6 +246,7 @@ document.getElementById('btnAvisarChegada').addEventListener('click', () => {
 
 function atualizarTabelaPendentes() {
     const tbody = document.querySelector('#tabelaPendentes tbody');
+    if(!tbody) return;
     tbody.innerHTML = "";
     for (let i = 0; i < localStorage.length; i++) {
         const chave = localStorage.key(i);
@@ -260,7 +266,7 @@ function reavisar(chave) {
     window.open(`https://wa.me/${morador.tel}?text=Lembrete: Encomenda (${item.doc}) na portaria.`, '_blank');
 }
 
-// --- RETIRADA (FIX WHATSAPP) ---
+// --- RETIRADA ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
     let casa = document.getElementById('confirmarCasa').value;
     if (casa.length === 1 && casa !== "0") casa = "0" + casa;
@@ -283,20 +289,21 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
 
     const assinatura = canvas.toDataURL();
     const nomeRetirante = bancoMoradores[casa][idx].nome;
+    const dataHoraRetirada = new Date().toLocaleString();
     const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     
     itensPendentes.forEach(item => {
-        registros.push({ casa: casa, nome: nomeRetirante, doc: item.doc, hora: new Date().toLocaleString(), assinatura: assinatura, foto: item.foto });
+        registros.push({ casa: casa, nome: nomeRetirante, doc: item.doc, hora: dataHoraRetirada, assinatura: assinatura, foto: item.foto });
         localStorage.removeItem(item.id);
     });
 
     localStorage.setItem('registrosPortaria', JSON.stringify(registros));
 
-    // WHATSAPP ANTES DO ALERT
-    const msg = `Retirada Confirmada: Olá ${nomeRetirante}, a(s) encomenda(s) (${itensPendentes.map(i=>i.doc).join(", ")}) foi retirada com sucesso!`;
+    const textoDocsRetirada = itensPendentes.map(i=>i.doc).join(", ");
+    const msg = `✅ *COMPROVANTE DE RETIRADA*\n\nUnidade Confirmada: *Casa ${casa}*\nRetirado por: *${nomeRetirante}*\n\n📦 *Itens:* ${textoDocsRetirada}\n⏰ *Data/Hora:* ${dataHoraRetirada}\n\n*Portaria Digital - Patrícia Galvão*`;
+    
     window.open(`https://wa.me/${bancoMoradores[casa][idx].tel}?text=${encodeURIComponent(msg)}`, '_blank');
 
-    // RESET
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     temAssinatura = false;
     document.getElementById('confirmarCasa').value = "";
@@ -311,6 +318,7 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
 function carregarHistorico() {
     const dados = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     const tbody = document.querySelector('#tabelaHistorico tbody');
+    if(!tbody) return;
     tbody.innerHTML = "";
     [...dados].reverse().forEach(item => {
         const linha = tbody.insertRow();
@@ -323,7 +331,7 @@ function carregarHistorico() {
     });
 }
 
-// --- CÂMERA COMPATÍVEL ---
+// --- CÂMERA ---
 document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
     try {
         streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
@@ -344,18 +352,53 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     document.getElementById('fotosContainer').appendChild(img);
 });
 
-// --- ASSINATURA ---
+// --- MOTOR DE ASSINATURA CONSERTADO ---
 const obterPos = (e) => {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+    return { 
+        x: (clientX - rect.left) * (canvas.width / rect.width), 
+        y: (clientY - rect.top) * (canvas.height / rect.height) 
+    };
 };
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); ctx.beginPath(); const p = obterPos(e); ctx.moveTo(p.x, p.y); temAssinatura = true; });
-canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const p = obterPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
-document.getElementById('btnLimpar').addEventListener('click', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); temAssinatura = false; });
 
-// --- PDF (FIX RASTREIO) ---
+const iniciarDesenho = (e) => {
+    e.preventDefault();
+    desenhando = true;
+    temAssinatura = true;
+    const p = obterPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+};
+
+const desenhar = (e) => {
+    if (!desenhando) return;
+    e.preventDefault();
+    const p = obterPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+};
+
+const pararDesenho = () => { desenhando = false; };
+
+// Eventos Touch (Celular)
+canvas.addEventListener('touchstart', iniciarDesenho);
+canvas.addEventListener('touchmove', desenhar);
+canvas.addEventListener('touchend', pararDesenho);
+
+// Eventos Mouse (PC)
+canvas.addEventListener('mousedown', iniciarDesenho);
+canvas.addEventListener('mousemove', desenhar);
+canvas.addEventListener('mouseup', pararDesenho);
+canvas.addEventListener('mouseleave', pararDesenho);
+
+document.getElementById('btnLimpar').addEventListener('click', () => { 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+    temAssinatura = false; 
+});
+
+// --- PDF ---
 document.getElementById('btnPDF').addEventListener('click', () => {
     const { jsPDF } = window.jspdf;
     const docPDF = new jsPDF();
@@ -365,7 +408,7 @@ document.getElementById('btnPDF').addEventListener('click', () => {
             rows.push([tr.cells[0].innerText, tr.cells[1].innerText, tr.cells[2].innerText, tr.cells[3].innerText, "", ""]);
         }
     });
-    docPDF.text("Relatório - Patrícia Galvão", 14, 15);
+    docPDF.text("Relatório - Residencial Patrícia Galvão", 14, 15);
     docPDF.autoTable({
         startY: 20,
         head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']],
@@ -373,9 +416,10 @@ document.getElementById('btnPDF').addEventListener('click', () => {
         didDrawCell: (data) => {
             if (data.cell.section === 'body') {
                 const tr = document.querySelectorAll('#tabelaHistorico tbody tr')[data.row.index];
-                const f = tr.getAttribute('data-foto'); const a = tr.getAttribute('data-assinatura');
-                if (data.column.index === 4 && f) docPDF.addImage(f, 'JPEG', data.cell.x+2, data.cell.y+2, 15, 12);
-                if (data.column.index === 5 && a) docPDF.addImage(a, 'PNG', data.cell.x+2, data.cell.y+2, 20, 10);
+                const f = tr.getAttribute('data-foto'); 
+                const a = tr.getAttribute('data-assinatura');
+                if (data.column.index === 4 && f && f !== "null") docPDF.addImage(f, 'JPEG', data.cell.x+2, data.cell.y+2, 15, 12);
+                if (data.column.index === 5 && a && a !== "null") docPDF.addImage(a, 'PNG', data.cell.x+2, data.cell.y+2, 20, 10);
             }
         },
         bodyStyles: { minCellHeight: 18 }
