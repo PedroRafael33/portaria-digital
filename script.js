@@ -176,13 +176,12 @@ const ctx = canvas.getContext('2d');
 const video = document.getElementById('video');
 let fotosBase64 = []; 
 let streamCamera = null;
+let temAssinatura = false; 
 
-// INICIALIZAÇÃO CORRETA DO QUADRO DE ASSINATURA PARA CELULAR
+// INICIALIZAÇÃO
 window.onload = () => {
     carregarHistorico();
     atualizarTabelaPendentes();
-    
-    // Garante que o quadro de assinatura abra no tamanho ideal da tela
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     ctx.lineWidth = 2;
@@ -190,7 +189,7 @@ window.onload = () => {
     ctx.lineCap = 'round';
 };
 
-// --- FUNÇÕES DE BUSCA DE MORADORES ---
+// --- BUSCA DE MORADORES ---
 function preencherSelect(casa, idSelect) {
     if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const select = document.getElementById(idSelect);
@@ -207,66 +206,42 @@ function preencherSelect(casa, idSelect) {
 document.getElementById('casaEntrada').addEventListener('input', (e) => preencherSelect(e.target.value, 'selectMoradorAviso'));
 document.getElementById('confirmarCasa').addEventListener('input', (e) => preencherSelect(e.target.value, 'selectMorador'));
 
-
-// --- REGISTRO DE CHEGADA E VÍNCULO DAS FOTOS ---
+// --- REGISTRO DE CHEGADA ---
 document.getElementById('btnAvisarChegada').addEventListener('click', () => {
     let casa = document.getElementById('casaEntrada').value;
     if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const docBruto = document.getElementById('docEntrada').value;
     const idx = document.getElementById('selectMoradorAviso').value;
 
-    if (!bancoMoradores[casa] || !docBruto.trim() || idx === "") return alert("Preencha todos os dados da encomenda!");
+    if (!bancoMoradores[casa] || !docBruto.trim() || idx === "") return alert("Preencha todos os dados!");
 
     const listaDocs = docBruto.split(',').map(d => d.trim()).filter(d => d !== "");
-    if(listaDocs.length === 0) return alert("Insira um número válido de documento!");
-
-    // Grava cada documento, associando a foto correta se houver
+    
     listaDocs.forEach((doc, index) => {
         const idUnico = `pendente_${casa}_${Date.now()}_${index}`;
-        
-        // Se tirou 3 fotos para 3 docs, pega a exata. Se tirou só 1 para todos, usa a mesma.
-        let fotoPacote = fotosBase64[index] || ""; 
-        if (fotosBase64.length === 1 && listaDocs.length > 1) {
-            fotoPacote = fotosBase64[0];
-        }
-
-        const dadosEncomenda = { id: idUnico, casa: casa, doc: doc, foto: fotoPacote, moradorIdx: idx };
-        localStorage.setItem(idUnico, JSON.stringify(dadosEncomenda));
+        let fotoPacote = fotosBase64[index] || (fotosBase64.length === 1 ? fotosBase64[0] : "");
+        const dados = { id: idUnico, casa: casa, doc: doc, foto: fotoPacote, moradorIdx: idx };
+        localStorage.setItem(idUnico, JSON.stringify(dados));
     });
 
     const morador = bancoMoradores[casa][idx];
-    const textoDocs = listaDocs.join(", ");
-    const textoMsg = listaDocs.length > 1 
-        ? `Olá ${morador.nome}, chegaram ${listaDocs.length} encomendas (${textoDocs}) na portaria!` 
-        : `Olá ${morador.nome}, sua encomenda (${textoDocs}) chegou!`;
-
+    const textoMsg = `Olá ${morador.nome}, sua(s) encomenda(s) (${listaDocs.join(", ")}) chegou na portaria!`;
     window.open(`https://wa.me/${morador.tel}?text=${encodeURIComponent(textoMsg)}`, '_blank');
 
-    // LIMPA E ZERA ABSOLUTAMENTE TUDO NO CADASTRO E CÂMERA
+    // LIMPAR
     document.getElementById('casaEntrada').value = "";
     document.getElementById('docEntrada').value = "";
     document.getElementById('selectMoradorAviso').innerHTML = '<option value="">Digite o nº da casa...</option>';
-    
     fotosBase64 = [];
     document.getElementById('fotosContainer').innerHTML = "";
-    
-    if (streamCamera) {
-        streamCamera.getTracks().forEach(track => track.stop());
-        streamCamera = null;
-    }
+    if (streamCamera) streamCamera.getTracks().forEach(t => t.stop());
     video.style.display = "none";
-    document.getElementById('btnTirarFoto').style.display = "none";
-
     atualizarTabelaPendentes();
 });
 
-
-// --- ATUALIZA A TABELA DE PENDENTES ---
 function atualizarTabelaPendentes() {
     const tbody = document.querySelector('#tabelaPendentes tbody');
-    if(!tbody) return;
     tbody.innerHTML = "";
-    
     for (let i = 0; i < localStorage.length; i++) {
         const chave = localStorage.key(i);
         if (chave.startsWith('pendente_')) {
@@ -282,261 +257,142 @@ function atualizarTabelaPendentes() {
 function reavisar(chave) {
     const item = JSON.parse(localStorage.getItem(chave));
     const morador = bancoMoradores[item.casa][item.moradorIdx];
-    window.open(`https://wa.me/${morador.tel}?text=Lembrete: Sua encomenda (${item.doc}) está na portaria.`, '_blank');
+    window.open(`https://wa.me/${morador.tel}?text=Lembrete: Encomenda (${item.doc}) na portaria.`, '_blank');
 }
 
-
-// --- FINALIZAR RETIRADA COM TRAVA DE SEGURANÇA E AVISO NO WHATSAPP ---
+// --- RETIRADA (FIX WHATSAPP) ---
 document.getElementById('btnFinalizar').addEventListener('click', () => {
     let casa = document.getElementById('confirmarCasa').value;
     if (casa.length === 1 && casa !== "0") casa = "0" + casa;
     const idx = document.getElementById('selectMorador').value;
 
-    if (!casa || idx === "") return alert("Selecione quem está retirando a encomenda!");
+    if (!casa || idx === "") return alert("Selecione quem está retirando!");
+    if (!temAssinatura) return alert("⚠️ Assinatura obrigatória!");
 
-    // TRAVA DE SEGURANÇA: EXIGE ASSINATURA ANTES DE FINALIZAR
-    if (!temAssinatura) {
-        return alert("⚠️ Atenção: A assinatura do morador é obrigatória para finalizar a entrega!");
-    }
-
-    let chavesPendentesCasa = [];
+    let chavesPendentes = [];
     let itensPendentes = [];
-
-    // Busca todas as encomendas daquela casa de uma só vez
     for (let i = 0; i < localStorage.length; i++) {
         const chave = localStorage.key(i);
         if (chave.startsWith(`pendente_${casa}_`)) {
-            chavesPendentesCasa.push(chave);
+            chavesPendentes.push(chave);
             itensPendentes.push(JSON.parse(localStorage.getItem(chave)));
         }
     }
 
-    if (chavesPendentesCasa.length === 0) return alert("Não há encomendas pendentes para esta casa!");
+    if (chavesPendentes.length === 0) return alert("Sem encomendas para esta casa!");
 
     const assinatura = canvas.toDataURL();
     const nomeRetirante = bancoMoradores[casa][idx].nome;
-    const dataHoraRetirada = new Date().toLocaleString('pt-BR');
-    
     const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     
-    // Insere no histórico cada pacote separado, mantendo a assinatura em todos
     itensPendentes.forEach(item => {
-        registros.push({ 
-            casa: casa, 
-            nome: nomeRetirante, 
-            doc: item.doc, 
-            hora: dataHoraRetirada, 
-            assinatura: assinatura, 
-            foto: item.foto 
-        });
+        registros.push({ casa: casa, nome: nomeRetirante, doc: item.doc, hora: new Date().toLocaleString(), assinatura: assinatura, foto: item.foto });
+        localStorage.removeItem(item.id);
     });
 
     localStorage.setItem('registrosPortaria', JSON.stringify(registros));
-    
-    // Apaga os pendentes dessa casa
-    chavesPendentesCasa.forEach(chave => localStorage.removeItem(chave));
 
+    // WHATSAPP ANTES DO ALERT
+    const msg = `Retirada Confirmada: Olá ${nomeRetirante}, a(s) encomenda(s) (${itensPendentes.map(i=>i.doc).join(", ")}) foi retirada com sucesso!`;
+    window.open(`https://wa.me/${bancoMoradores[casa][idx].tel}?text=${encodeURIComponent(msg)}`, '_blank');
+
+    // RESET
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    temAssinatura = false; // RESETA A TRAVA DE ASSINATURA PARA A PRÓXIMA ENTREGA
-
+    temAssinatura = false;
     document.getElementById('confirmarCasa').value = "";
-    document.getElementById('selectMorador').innerHTML = "<option value=''>Aguardando...</option>";
+    document.getElementById('selectMorador').innerHTML = "<option>Aguardando...</option>";
     carregarHistorico();
     atualizarTabelaPendentes();
-    
-    alert(`${chavesPendentesCasa.length} encomenda(s) entregue(s) com sucesso para a casa ${casa}!`);
 
-    // --- NOVA FUNÇÃO: MENSAGEM DE WHATSAPP NA RETIRADA ---
-    const listaDocsRetirada = itensPendentes.map(item => item.doc);
-    const textoDocsRetirada = listaDocsRetirada.join(", ");
-    const textoMsgRetirada = listaDocsRetirada.length > 1 
-        ? `Confirmação de Retirada: Olá ${nomeRetirante}, as ${listaDocsRetirada.length} encomendas (${textoDocsRetirada}) foram retiradas na portaria com sucesso!` 
-        : `Confirmação de Retirada: Olá ${nomeRetirante}, a encomenda (${textoDocsRetirada}) foi retirada na portaria com sucesso!`;
-    
-    const morador = bancoMoradores[casa][idx];
-    window.open(`https://wa.me/${morador.tel}?text=${encodeURIComponent(textoMsgRetirada)}`, '_blank');
+    setTimeout(() => alert("Entrega finalizada!"), 300);
 });
 
-
-// --- CARREGAR HISTÓRICO ---
+// --- HISTÓRICO ---
 function carregarHistorico() {
     const dados = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     const tbody = document.querySelector('#tabelaHistorico tbody');
-    if(!tbody) return;
     tbody.innerHTML = "";
-    
-    const dadosInvertidos = [...dados].reverse();
-
-    dadosInvertidos.forEach(item => {
+    [...dados].reverse().forEach(item => {
         const linha = tbody.insertRow();
         linha.insertCell(0).innerText = item.casa;
         linha.insertCell(1).innerText = item.nome;
         linha.insertCell(2).innerText = item.doc;
         linha.insertCell(3).innerText = item.hora;
-        
-        linha.setAttribute('data-assinatura', item.assinatura || "");
-        linha.setAttribute('data-foto', item.foto || "");
+        linha.setAttribute('data-assinatura', item.assinatura);
+        linha.setAttribute('data-foto', item.foto);
     });
 }
 
-
-// --- CÂMERA PARA MÚLTIPLAS FOTOS (COMPATÍVEL COM PC E CELULAR) ---
+// --- CÂMERA COMPATÍVEL ---
 document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
     try {
-        // O "ideal" faz funcionar no celular (traseira) e no PC (webcam frontal)
-        streamCamera = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: { ideal: "environment" } } 
-        });
+        streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
         video.srcObject = streamCamera;
         video.style.display = "block";
         document.getElementById('btnTirarFoto').style.display = "block";
-    } catch (e) { 
-        alert("Câmera não disponível. Verifique se o PC possui webcam ou se o navegador tem permissão."); 
-        console.error(e);
-    }
+    } catch (e) { alert("Câmera indisponível"); }
 });
 
 document.getElementById('btnTirarFoto').addEventListener('click', () => {
     const canvasFoto = document.getElementById('canvasFoto');
-    canvasFoto.width = 320;
-    canvasFoto.height = 240;
+    canvasFoto.width = 320; canvasFoto.height = 240;
     canvasFoto.getContext('2d').drawImage(video, 0, 0, 320, 240);
     const novaFoto = canvasFoto.toDataURL('image/jpeg', 0.5);
-    
-    fotosBase64.push(novaFoto); // Guarda a foto na lista
-    
-    // Cria a fotinha miniatura e coloca na tela
-    const imgContainer = document.getElementById('fotosContainer');
+    fotosBase64.push(novaFoto);
     const img = document.createElement('img');
-    img.src = novaFoto;
-    img.style.height = "80px";
-    img.style.width = "80px"; /* Adiciona uma largura fixa para a miniatura */
-    img.style.objectFit = "cover"; /* CORTA A IMAGEM EM VEZ DE ACHATAR */
-    img.style.borderRadius = "8px";
-    img.style.border = "1px solid #ccc";
-    imgContainer.appendChild(img);
+    img.src = novaFoto; img.style = "height:80px; width:80px; object-fit:cover; border-radius:8px; border:1px solid #ccc;";
+    document.getElementById('fotosContainer').appendChild(img);
 });
 
-
-// --- ASSINATURA TOUCH COM TRAVA DE SEGURANÇA ---
-let desenhando = false;
-let temAssinatura = false; // VARIÁVEL DE TRAVA 
-
+// --- ASSINATURA ---
 const obterPos = (e) => {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { 
-        x: (clientX - rect.left) * scaleX, 
-        y: (clientY - rect.top) * scaleY 
-    };
+    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
 };
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); ctx.beginPath(); const p = obterPos(e); ctx.moveTo(p.x, p.y); temAssinatura = true; });
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const p = obterPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+document.getElementById('btnLimpar').addEventListener('click', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); temAssinatura = false; });
 
-canvas.addEventListener('mousedown', (e) => { desenhando = true; temAssinatura = true; ctx.beginPath(); const p = obterPos(e); ctx.moveTo(p.x, p.y); });
-canvas.addEventListener('mousemove', (e) => { if (!desenhando) return; const p = obterPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
-window.addEventListener('mouseup', () => desenhando = false);
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); desenhando = true; temAssinatura = true; ctx.beginPath(); const p = obterPos(e); ctx.moveTo(p.x, p.y); });
-canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!desenhando) return; const p = obterPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
-
-// --- LIMPAR ASSINATURA ---
-document.getElementById('btnLimpar').addEventListener('click', () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    temAssinatura = false; // BLOQUEIA NOVAMENTE SE LIMPAR O QUADRO
-});
-
-
-// --- PDF AVANÇADO (CORRIGIDO E SEGURO) ---
+// --- PDF (FIX RASTREIO) ---
 document.getElementById('btnPDF').addEventListener('click', () => {
-    try {
-        const { jsPDF } = window.jspdf;
-        const docPDF = new jsPDF();
-        
-        const linhasVisiveis = [];
-        const imagensExtras = [];
-        
-        // Pega apenas as linhas que estão aparecendo na tabela
-        document.querySelectorAll('#tabelaHistorico tbody tr').forEach(tr => {
-            if (tr.style.display !== 'none') {
-                linhasVisiveis.push([
-                    tr.cells[0].innerText, 
-                    tr.cells[1].innerText, 
-                    tr.cells[2].innerText, 
-                    tr.cells[3].innerText, 
-                    "", // Espaço para a Foto
-                    ""  // Espaço para a Assinatura
-                ]);
-                
-                // Salva a foto e assinatura na mesma ordem exata da tabela
-                imagensExtras.push({
-                    foto: tr.getAttribute('data-foto'),
-                    assinatura: tr.getAttribute('data-assinatura')
-                });
-            }
-        });
-
-        if (linhasVisiveis.length === 0) {
-            return alert("Não há registros visíveis para gerar o PDF.");
+    const { jsPDF } = window.jspdf;
+    const docPDF = new jsPDF();
+    const rows = [];
+    document.querySelectorAll('#tabelaHistorico tbody tr').forEach(tr => {
+        if (tr.style.display !== 'none') {
+            rows.push([tr.cells[0].innerText, tr.cells[1].innerText, tr.cells[2].innerText, tr.cells[3].innerText, "", ""]);
         }
-
-        docPDF.text("Relatório de Entregas - Patrícia Galvão", 14, 15);
-        
-        docPDF.autoTable({ 
-            startY: 20,
-            head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']], 
-            body: linhasVisiveis,
-            didDrawCell: (data) => {
-                if (data.cell.section === 'body') {
-                    // Puxa as imagens corretas daquela linha
-                    const img = imagensExtras[data.row.index];
-                    
-                    try {
-                        // Se houver foto, cola como JPEG
-                        if (data.column.index === 4 && img.foto && img.foto.includes('data:image')) {
-                            docPDF.addImage(img.foto, 'JPEG', data.cell.x + 2, data.cell.y + 2, 15, 12);
-                        }
-                        // Se houver assinatura, cola como PNG
-                        if (data.column.index === 5 && img.assinatura && img.assinatura.includes('data:image')) {
-                            docPDF.addImage(img.assinatura, 'PNG', data.cell.x + 2, data.cell.y + 2, 20, 10);
-                        }
-                    } catch (errImg) {
-                        console.log("Aviso: Falha ao desenhar imagem na linha", data.row.index);
-                    }
-                }
-            },
-            bodyStyles: { minCellHeight: 18 } 
-        });
-        
-        docPDF.save("relatorio_patricia_galvao.pdf");
-    } catch (erroGeral) {
-        alert("Erro ao tentar gerar o PDF. Verifique o console.");
-        console.error(erroGeral);
-    }
+    });
+    docPDF.text("Relatório - Patrícia Galvão", 14, 15);
+    docPDF.autoTable({
+        startY: 20,
+        head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']],
+        body: rows,
+        didDrawCell: (data) => {
+            if (data.cell.section === 'body') {
+                const tr = document.querySelectorAll('#tabelaHistorico tbody tr')[data.row.index];
+                const f = tr.getAttribute('data-foto'); const a = tr.getAttribute('data-assinatura');
+                if (data.column.index === 4 && f) docPDF.addImage(f, 'JPEG', data.cell.x+2, data.cell.y+2, 15, 12);
+                if (data.column.index === 5 && a) docPDF.addImage(a, 'PNG', data.cell.x+2, data.cell.y+2, 20, 10);
+            }
+        },
+        bodyStyles: { minCellHeight: 18 }
+    });
+    docPDF.save("relatorio_portaria.pdf");
 });
 
-// --- PESQUISA INTELIGENTE ---
+// --- PESQUISA ---
 document.getElementById('pesquisarHistorico').addEventListener('input', (e) => {
     const termo = e.target.value.toLowerCase();
-    document.querySelectorAll('#tabelaHistorico tbody tr').forEach(linha => {
-        linha.style.display = linha.innerText.toLowerCase().includes(termo) ? "" : "none";
-    });
+    document.querySelectorAll('#tabelaHistorico tbody tr').forEach(l => l.style.display = l.innerText.toLowerCase().includes(termo) ? "" : "none");
 });
 
-// --- BOTÃO DE LIMPEZA DO HISTÓRICO (LIBERAR MEMÓRIA) ---
+// --- LIMPAR MEMÓRIA ---
 document.getElementById('btnLimparHistorico').addEventListener('click', () => {
-    const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
-    
-    if (registros.length === 0) {
-        return alert("O histórico já está vazio!");
-    }
-
-    // Confirmação dupla para evitar acidentes
-    const confirmacao = confirm("⚠️ ATENÇÃO!\n\nTem a certeza de que deseja apagar TODO o histórico de entregas?\n\nCertifique-se de que já gerou e guardou o PDF. Esta ação NÃO pode ser desfeita.\n\nDeseja continuar?");
-    
-    if (confirmacao) {
+    if (confirm("⚠️ Apagar TODO o histórico? Gere o PDF antes!")) {
         localStorage.removeItem('registrosPortaria');
-        carregarHistorico(); // Esvazia a tabela visualmente
-        alert("🗑️ Histórico apagado com sucesso! A memória do sistema está livre para o próximo mês.");
+        carregarHistorico();
     }
 });
