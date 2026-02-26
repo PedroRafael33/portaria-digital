@@ -289,7 +289,7 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
 
     const assinatura = canvas.toDataURL();
     const nomeRetirante = bancoMoradores[casa][idx].nome;
-    const dataHoraRetirada = new Date().toLocaleString();
+    const dataHoraRetirada = new Date().toLocaleString('pt-BR');
     const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
     
     itensPendentes.forEach(item => {
@@ -343,7 +343,8 @@ document.getElementById('btnAbrirCamera').addEventListener('click', async () => 
 
 document.getElementById('btnTirarFoto').addEventListener('click', () => {
     const canvasFoto = document.getElementById('canvasFoto');
-    canvasFoto.width = 320; canvasFoto.height = 240;
+    canvasFoto.width = 320;
+    canvasFoto.height = 240;
     canvasFoto.getContext('2d').drawImage(video, 0, 0, 320, 240);
     const novaFoto = canvasFoto.toDataURL('image/jpeg', 0.5);
     fotosBase64.push(novaFoto);
@@ -352,7 +353,7 @@ document.getElementById('btnTirarFoto').addEventListener('click', () => {
     document.getElementById('fotosContainer').appendChild(img);
 });
 
-// --- MOTOR DE ASSINATURA CONSERTADO ---
+// --- MOTOR DE ASSINATURA ---
 const obterPos = (e) => {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -382,12 +383,9 @@ const desenhar = (e) => {
 
 const pararDesenho = () => { desenhando = false; };
 
-// Eventos Touch (Celular)
 canvas.addEventListener('touchstart', iniciarDesenho);
 canvas.addEventListener('touchmove', desenhar);
 canvas.addEventListener('touchend', pararDesenho);
-
-// Eventos Mouse (PC)
 canvas.addEventListener('mousedown', iniciarDesenho);
 canvas.addEventListener('mousemove', desenhar);
 canvas.addEventListener('mouseup', pararDesenho);
@@ -398,33 +396,83 @@ document.getElementById('btnLimpar').addEventListener('click', () => {
     temAssinatura = false; 
 });
 
-// --- PDF ---
-document.getElementById('btnPDF').addEventListener('click', () => {
-    const { jsPDF } = window.jspdf;
-    const docPDF = new jsPDF();
-    const rows = [];
-    document.querySelectorAll('#tabelaHistorico tbody tr').forEach(tr => {
-        if (tr.style.display !== 'none') {
-            rows.push([tr.cells[0].innerText, tr.cells[1].innerText, tr.cells[2].innerText, tr.cells[3].innerText, "", ""]);
-        }
-    });
-    docPDF.text("Relatório - Residencial Patrícia Galvão", 14, 15);
-    docPDF.autoTable({
-        startY: 20,
-        head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']],
-        body: rows,
-        didDrawCell: (data) => {
-            if (data.cell.section === 'body') {
-                const tr = document.querySelectorAll('#tabelaHistorico tbody tr')[data.row.index];
-                const f = tr.getAttribute('data-foto'); 
-                const a = tr.getAttribute('data-assinatura');
-                if (data.column.index === 4 && f && f !== "null") docPDF.addImage(f, 'JPEG', data.cell.x+2, data.cell.y+2, 15, 12);
-                if (data.column.index === 5 && a && a !== "null") docPDF.addImage(a, 'PNG', data.cell.x+2, data.cell.y+2, 20, 10);
+// --- PDF (MÉTODO 100% SEGURO - PARTILHA NATIVA / DOWNLOAD) ---
+document.getElementById('btnPDF').addEventListener('click', async () => {
+    const btn = document.getElementById('btnPDF');
+    const textoOriginal = btn.innerText;
+    
+    try {
+        btn.innerText = "⏳ A gerar PDF...";
+        btn.disabled = true;
+
+        const { jsPDF } = window.jspdf;
+        const docPDF = new jsPDF();
+        const rows = [];
+        
+        document.querySelectorAll('#tabelaHistorico tbody tr').forEach(tr => {
+            if (tr.style.display !== 'none') {
+                rows.push([tr.cells[0].innerText, tr.cells[1].innerText, tr.cells[2].innerText, tr.cells[3].innerText, "", ""]);
             }
-        },
-        bodyStyles: { minCellHeight: 18 }
-    });
-    docPDF.save("relatorio_portaria.pdf");
+        });
+
+        if (rows.length === 0) {
+            btn.innerText = textoOriginal;
+            btn.disabled = false;
+            return alert("Não há registos para gerar o PDF.");
+        }
+
+        docPDF.text("Relatório - Residencial Patrícia Galvão", 14, 15);
+        docPDF.autoTable({
+            startY: 20,
+            head: [['Casa', 'Morador', 'Rastreio', 'Hora', 'Foto', 'Assinatura']],
+            body: rows,
+            didDrawCell: (data) => {
+                if (data.cell.section === 'body') {
+                    const tr = document.querySelectorAll('#tabelaHistorico tbody tr')[data.row.index];
+                    const f = tr.getAttribute('data-foto'); 
+                    const a = tr.getAttribute('data-assinatura');
+                    if (data.column.index === 4 && f && f !== "null") docPDF.addImage(f, 'JPEG', data.cell.x+2, data.cell.y+2, 15, 12);
+                    if (data.column.index === 5 && a && a !== "null") docPDF.addImage(a, 'PNG', data.cell.x+2, data.cell.y+2, 20, 10);
+                }
+            },
+            bodyStyles: { minCellHeight: 18 }
+        });
+
+        const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        const nomeArquivo = `Relatorio_Portaria_${dataHoje}.pdf`;
+
+        // Transforma o PDF gerado num ficheiro real
+        const pdfBlob = docPDF.output('blob');
+        const file = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
+
+        // TENTA ABRIR O MENU NATIVO DE PARTILHA (PARA GUARDAR NO DRIVE/WHATSAPP)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    title: 'Relatório da Portaria',
+                    text: 'Relatório gerado com sucesso.',
+                    files: [file]
+                });
+                console.log("Menu de partilha aberto com sucesso.");
+            } catch (errShare) {
+                // Se o utilizador cancelar a partilha, não fazemos nada.
+                console.log("Partilha cancelada pelo utilizador.");
+            }
+        } else {
+            // SE O DISPOSITIVO NÃO SUPORTAR PARTILHA NATIVA (Ex: Computador Antigo), FAZ O DOWNLOAD NORMAL
+            alert("A abrir a transferência do PDF. Pode depois mover para o Drive.");
+            docPDF.save(nomeArquivo);
+        }
+
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
+
+    } catch (erroGeral) {
+        alert("Erro grave na geração do PDF. Tente novamente.");
+        console.error(erroGeral);
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
+    }
 });
 
 // --- PESQUISA ---
@@ -435,8 +483,17 @@ document.getElementById('pesquisarHistorico').addEventListener('input', (e) => {
 
 // --- LIMPAR MEMÓRIA ---
 document.getElementById('btnLimparHistorico').addEventListener('click', () => {
-    if (confirm("⚠️ Apagar TODO o histórico? Gere o PDF antes!")) {
+    const registros = JSON.parse(localStorage.getItem('registrosPortaria')) || [];
+    
+    if (registros.length === 0) {
+        return alert("O histórico já está vazio!");
+    }
+
+    const confirmacao = confirm("⚠️ ATENÇÃO!\n\nTem a certeza de que deseja apagar TODO o histórico de entregas?\n\nCertifique-se de que já gerou e guardou o PDF. Esta ação NÃO pode ser desfeita.\n\nDeseja continuar?");
+    
+    if (confirmacao) {
         localStorage.removeItem('registrosPortaria');
         carregarHistorico();
+        alert("🗑️ Histórico apagado com sucesso! A memória do sistema está livre.");
     }
 });
